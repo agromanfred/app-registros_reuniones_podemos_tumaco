@@ -1,0 +1,7 @@
+Flask
+flask_sqlalchemy
+pymysql
+pandas
+openpyxl
+flask-cors
+gunicorn

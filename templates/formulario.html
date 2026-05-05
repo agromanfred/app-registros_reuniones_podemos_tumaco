@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registro de Asistentes</title>
+</head>
+<body>
+
+<h2>Registro de Asistentes</h2>
+
+<form id="formulario">
+    <input type="text" id="nombre" placeholder="Nombre" required><br><br>
+    <input type="text" id="cedula" placeholder="Cédula" required><br><br>
+    <input type="text" id="telefono" placeholder="Teléfono"><br><br>
+    <input type="text" id="barrio" placeholder="Barrio"><br><br>
+
+    <button type="submit">Guardar</button>
+</form>
+
+<p id="mensaje"></p>
+
+<script>
+document.getElementById('formulario').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const data = {
+        nombre: document.getElementById('nombre').value,
+        cedula: document.getElementById('cedula').value,
+        telefono: document.getElementById('telefono').value,
+        barrio: document.getElementById('barrio').value
+    };
+
+    const response = await fetch('/registro', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    document.getElementById('mensaje').innerText = result.mensaje || result.error;
+});
+</script>
+
+</body>
+</html>
+<hr>
+
+<h3>Subir archivo Excel</h3>
+
+<form id="excelForm">
+    <input type="file" id="archivo" accept=".xlsx" required>
+    <button type="submit">Subir Excel</button>
+</form>
+
+<p id="mensajeExcel"></p>
+
+<script>
+document.getElementById('excelForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const archivo = document.getElementById('archivo').files[0];
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    const response = await fetch('/subir_excel', {
+        method: 'POST',
+        body: formData
+    });
+
+    const result = await response.json();
+
+    document.getElementById('mensajeExcel').innerText =
+    `Insertados: ${result.insertados}, Duplicados: ${result.duplicados}, Errores: ${result.errores}`;
+});
+</script>

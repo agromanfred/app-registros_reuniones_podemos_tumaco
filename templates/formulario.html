@@ -73,6 +73,6 @@ document.getElementById('excelForm').addEventListener('submit', async function(e
     const result = await response.json();
 
     document.getElementById('mensajeExcel').innerText =
-    `Insertados: ${result.insertados}, Duplicados: ${result.duplicados}, Errores: ${result.errores}`;
+        `Actualizados: ${result.actualizados}, Insertados: ${result.insertados}, Duplicados: ${result.duplicados}, Errores: ${result.errores}`;
 });
 </script>

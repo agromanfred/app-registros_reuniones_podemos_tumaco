@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 import config
 
+from flask import send_file
+import pandas as pd
+import io
+
 app = Flask(__name__)
 app.config.from_object(config)
 
@@ -46,6 +50,8 @@ def crear_registro():
 
     return jsonify({'mensaje': 'Registro guardado'})
 
+
+
 # 🔹 Ver registros
 @app.route('/registros')
 def ver_registros():
@@ -61,59 +67,118 @@ import pandas as pd
 from flask import request, jsonify
 
 @app.route('/subir_excel', methods=['POST'])
+
 def subir_excel():
+
     try:
+
         archivo = request.files['archivo']
+
         df = pd.read_excel(archivo)
 
-        # Normalizar columnas
         df.columns = df.columns.str.strip().str.lower()
 
         insertados = 0
+        actualizados = 0
         duplicados = 0
         errores = 0
 
-        for _, fila in df.iterrows():
+        for _, row in df.iterrows():
+
             try:
-                nombre = fila.get('nombre')
-                cedula = fila.get('cedula')
+                nombre = str(row['nombre']).strip()
+                cedula = str(row['cedula']).strip()
+                telefono = str(row['telefono']).strip()
+                barrio = str(row['barrio']).strip()
 
-                if pd.isna(nombre) or pd.isna(cedula):
-                    errores += 1
-                    continue
+                # Buscar por cédula
+                existente = Registro.query.filter_by(cedula=cedula).first()
 
-                cedula = str(cedula).strip()
+                if existente:
 
-                # Verificar duplicado
-                existe = Registro.query.filter_by(cedula=cedula).first()
-                if existe:
-                    duplicados += 1
-                    continue
+                    cambios = False
 
-                nuevo = Registro(
-                    nombre=str(nombre).strip(),
-                    cedula=cedula,
-                    telefono=str(fila.get('telefono', '')).strip(),
-                    barrio=str(fila.get('barrio', '')).strip()
-                )
+                    if existente.nombre != nombre:
+                        existente.nombre = nombre
+                        cambios = True
 
-                db.session.add(nuevo)
-                db.session.commit()  # 🔥 commit por fila
+                    if existente.telefono != telefono:
+                        existente.telefono = telefono
+                        cambios = True
 
-                insertados += 1
+                    if existente.barrio != barrio:
+                        existente.barrio = barrio
+                        cambios = True
+
+                    if cambios:
+                        db.session.commit()
+                        actualizados += 1
+                    else:
+                        duplicados += 1
+
+                else:
+
+                    nuevo = Registro(
+                        nombre=nombre,
+                        cedula=cedula,
+                        telefono=telefono,
+                        barrio=barrio
+                    )
+
+                    db.session.add(nuevo)
+                    db.session.commit()
+
+                    insertados += 1
 
             except Exception as e:
-                db.session.rollback()  # 🔥 CLAVE
+                db.session.rollback()
                 errores += 1
 
         return jsonify({
-            'insertados': insertados,
-            'duplicados': duplicados,
-            'errores': errores
+            "insertados": insertados,
+            "actualizados": actualizados,
+            "duplicados": duplicados,
+            "errores": errores
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            "error": str(e)
+        }), 500
+    
+@app.route('/exportar_excel', methods=['GET'])
+def exportar_excel():
+    try:
+        # Obtener datos desde la BD
+        registros = Registro.query.all()
+
+        # Convertir a lista de diccionarios
+        data = []
+        for r in registros:
+            data.append({
+                "nombre": r.nombre,
+                "cedula": r.cedula,
+                "telefono": r.telefono,
+                "barrio": r.barrio
+            })
+
+        # Crear DataFrame
+        df = pd.DataFrame(data)
+
+        # Crear archivo en memoria
+        output = io.BytesIO()
+        df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
+
+        # Enviar archivo
+        return send_file(
+            output,
+            download_name="registros.xlsx",
+            as_attachment=True
+        )
+
+    except Exception as e:
+        return {"error": str(e)}, 500
     
 # 🔻 SIEMPRE AL FINAL
 if __name__ == '__main__':

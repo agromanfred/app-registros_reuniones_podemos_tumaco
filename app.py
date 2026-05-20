@@ -19,7 +19,12 @@ class Registro(db.Model):
     telefono = db.Column(db.String(20))
     barrio = db.Column(db.String(100))
 
+    ocupacion = db.Column(db.String(200), nullable=True)
+
+    
+
 # 🔹 Crear tablas
+
 with app.app_context():
     db.create_all()
 
@@ -42,7 +47,8 @@ def crear_registro():
         nombre=data['nombre'],
         cedula=data['cedula'],
         telefono=data.get('telefono'),
-        barrio=data.get('barrio')
+        barrio=data.get('barrio'),
+        ocupacion=data.get('ocupacion')
     )
 
     db.session.add(nuevo)
@@ -60,7 +66,9 @@ def ver_registros():
         "nombre": r.nombre,
         "cedula": r.cedula,
         "telefono": r.telefono,
-        "barrio": r.barrio
+        "barrio": r.barrio,
+        "ocupacion": r.ocupacion
+
     } for r in datos])
 
 import pandas as pd
@@ -90,6 +98,12 @@ def subir_excel():
                 cedula = str(row['cedula']).strip()
                 telefono = str(row['telefono']).strip()
                 barrio = str(row['barrio']).strip()
+        
+
+                ocupacion = ""
+
+                if 'ocupacion' in df.columns:
+                    ocupacion = str(row['ocupacion']).strip()
 
                 # Buscar por cédula
                 existente = Registro.query.filter_by(cedula=cedula).first()
@@ -110,6 +124,10 @@ def subir_excel():
                         existente.barrio = barrio
                         cambios = True
 
+                    if existente.ocupacion != ocupacion:
+                        existente.ocupacion = ocupacion
+                        cambios = True
+
                     if cambios:
                         db.session.commit()
                         actualizados += 1
@@ -122,7 +140,8 @@ def subir_excel():
                         nombre=nombre,
                         cedula=cedula,
                         telefono=telefono,
-                        barrio=barrio
+                        barrio=barrio,
+                        ocupacion=ocupacion
                     )
 
                     db.session.add(nuevo)
@@ -159,7 +178,8 @@ def exportar_excel():
                 "nombre": r.nombre,
                 "cedula": r.cedula,
                 "telefono": r.telefono,
-                "barrio": r.barrio
+                "barrio": r.barrio,
+                "ocupacion": r.ocupacion    
             })
 
         # Crear DataFrame
